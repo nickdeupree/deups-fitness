@@ -1,3 +1,4 @@
+import React from 'react';
 import Navigation from "./components/navigation/Navigation";
 import Link from 'next/link';
 
@@ -7,7 +8,7 @@ export default function Home() {
       <Navigation />
       <main className="flex flex-col items-center justify-center flex-1">
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Welcome to Deup's Fitness</h1>
+          <h1 className="text-4xl font-bold mb-4">Welcome to Deup&apos;s Fitness</h1>
           <p className="text-lg text-gray-300 mb-6">Track. Improve. Achieve.</p>
         </div>
         <div className="bg-gray-700 w-[300px] h-[500px] rounded-lg mb-6 flex items-center justify-center">

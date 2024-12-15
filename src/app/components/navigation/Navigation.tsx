@@ -1,73 +1,96 @@
 "use client";
 
-import React from 'react';
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, Button, NavbarMenu, NavbarMenuToggle } from "@nextui-org/react";
+import React, { useState, useEffect } from 'react';
+import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, Button, NavbarMenu, NavbarMenuToggle, Avatar } from "@nextui-org/react";
 import useIsMobile from '../../hooks/useIsMobile';
 import { CgGym } from "react-icons/cg";
+import { FaUserCircle } from "react-icons/fa";
+import { auth } from '../../lib/firebaseClient';
+import { useTheme } from 'next-themes';
+
 
 function Navigation() {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [user, setUser] = useState<any>(null);
   const isMobile = useIsMobile();
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    auth.onAuthStateChanged((user) => {
+      console.log("OnAuthChange: ", user);
+      if (user) {
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      setUser(auth.currentUser);
+    }
+  }, [isLoggedIn]);  
 
   return (
-    <Navbar isBordered>
+    <Navbar isBordered className={theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-black'}>
       <NavbarBrand>
-        <Link color="foreground" href="/" className="flex items-center space-x-2 mr-2 text-lg">
+        <Link href="/" className="flex items-center space-x-2 mr-2 text-lg">
           <CgGym className="text-2xl" />
-          <p className="font-bold text-inherit">Deup's Fitness</p>
-        </Link> 
+          <p className="font-bold">Deup&apos;s Fitness</p>
+        </Link>
       </NavbarBrand>
       {isMobile ? (
         <>
-          {/* NavbarMenuToggle for mobile view */}
           <NavbarMenuToggle aria-label="Toggle navigation menu" />
-          {/* NavbarMenu for mobile view */}
           <NavbarMenu>
             <NavbarItem>
-              <Link color="foreground" href="/nutrition">
+              <Link href="/nutrition" className={theme === 'dark' ? 'text-white' : 'text-black'}>
                 Nutrition
               </Link>
             </NavbarItem>
             <NavbarItem>
-              <Link color="foreground" href="/workouts">
+              <Link href="/workouts" className={theme === 'dark' ? 'text-white' : 'text-black'}>
                 Workouts
               </Link>
-            </NavbarItem>
-            <NavbarItem>
-              <Link href="/login">Login</Link>
-            </NavbarItem>
-            <NavbarItem>
-              <Button as={Link} color="primary" href="/signup" variant="flat">
-                Sign Up
-              </Button>
             </NavbarItem>
           </NavbarMenu>
         </>
       ) : (
-        <>
-          {/* NavbarContent for desktop view */}
-          <NavbarContent className="gap-4" justify="center">
+        <NavbarContent>
+          <NavbarItem>
+            <Link href="/nutrition" className={theme === 'dark' ? 'text-white' : 'text-black'}>
+              Nutrition
+            </Link>
+          </NavbarItem>
+          <NavbarItem>
+            <Link href="/workouts" className={theme === 'dark' ? 'text-white' : 'text-black'}>
+              Workouts
+            </Link>
+          </NavbarItem>
+          <NavbarItem>
+            <Link href="/about" className={theme === 'dark' ? 'text-white' : 'text-black'}>
+              About
+            </Link>
+          </NavbarItem>
+          {isLoggedIn ? (
             <NavbarItem>
-              <Link color="foreground" href="/nutrition">
-                Nutrition
+              <Link href="/profile">
+              <Avatar
+                src={user?.photoURL || ''}
+                alt="User Avatar"
+                className="text-white"
+              />
               </Link>
             </NavbarItem>
+          ) : (
             <NavbarItem>
-              <Link color="foreground" href="/workouts">
-                Workouts
-              </Link>
-            </NavbarItem>
-          </NavbarContent>
-          <NavbarContent justify="end">
-            <NavbarItem>
-              <Link href="/login">Login</Link>
-            </NavbarItem>
-            <NavbarItem>
-              <Button as={Link} color="primary" href="/signup" variant="flat">
-                Sign Up
+              <Button variant="flat" as={Link} href="/login" className={theme === 'dark' ? 'text-white' : 'text-black'}>
+                Login
               </Button>
             </NavbarItem>
-          </NavbarContent>
-        </>
+          )}
+        </NavbarContent>
       )}
     </Navbar>
   );
