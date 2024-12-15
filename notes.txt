@@ -1,0 +1,14 @@
+Design ideas:
+
+bottom navbar will go: Home, Nutrition, Plus button, Workouts, Profile
+
+Home will show some info...
+
+Plus button will bring up a centered dropup to add food, or add workout
+
+profile will allow you to edit your personal details (pfp, name, email) and 
+calorie goals. I'm thinking we can do a progress photo check for the user. 
+
+
+
+-------------------------------------------------------------------------------
