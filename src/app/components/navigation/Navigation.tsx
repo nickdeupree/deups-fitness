@@ -54,6 +54,14 @@ function Navigation() {
                 Workouts
               </Link>
             </NavbarItem>
+            <NavbarItem>
+            <Link href="/about" className={theme === 'dark' ? 'text-white' : 'text-black'}>
+              About
+            </Link>
+          </NavbarItem>
+            <Link href="/profile" className={theme === 'dark' ? 'text-white' : 'text-black'}>
+              Profile
+            </Link>
           </NavbarMenu>
         </>
       ) : (
