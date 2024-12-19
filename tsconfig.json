@@ -11,6 +11,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "lib": ["dom", "es2015"],
     "jsx": "preserve",
     "plugins": [
       {
@@ -24,6 +25,7 @@
     ".next/types/**/*.ts",
     "src/app/components/navigation/Navigation.tsx",
     "src/app/components/themeswitcher/ThemeSwitcher.tsx",
-    "src/app/providers.tsx"
+    "src/app/providers.tsx",
+    "src/app/search/Search.tsx",
   ]
 }

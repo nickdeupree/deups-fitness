@@ -20,77 +20,96 @@ import {
     ModalHeader,
     ModalBody,
     ModalFooter,
-    Pagination,
+    Select,
+    SelectItem,
 } from '@nextui-org/react';
+import {FoodItem} from '../types/nutrition';
+import {FaInfo} from 'react-icons/fa';
+import { IoAdd } from 'react-icons/io5';
 
-// Define the type for a food nutrient
-interface FoodNutrient {
-    nutrientId: number;
-    nutrientName: string;
-    value: number;
-    unitName: string;
+interface SearchPageProps {
+    onSelectFood: (food: FoodItem) => void; // Add prop for selection
 }
 
-// Define the type for the food item
-interface FoodItem {
-    fdcId: number;
-    description: string;
-    brandOwner?: string;
-    brandName?: string; // New field
-    gtinUpc?: string; // New field
-    servingSize?: number; // New field
-    servingSizeUnit?: string; // New field
-    foodNutrients?: FoodNutrient[];
-    foodCategory?: string;
-}
-
-const SearchPage: React.FC = () => {
+const SearchPage: React.FC<SearchPageProps> = ({ onSelectFood }) => {
     const {isOpen, onOpen, onOpenChange} = useDisclosure();
     const modalDisclosure = useDisclosure();
 
     const [query, setQuery] = useState<string>('');
-    const [brandOwner, setBrandOwner] = useState<string>('');
-    const [pageNumber, setPageNumber] = useState<number>(1);
-    const [totalPages, setTotalPages] = useState<number>(1);
+    const [amount, setAmount] = useState<number>(100);
+    const [prevUnit, setPrevUnit] = useState<string>('grams');
+    const [unit, setUnit] = useState<string>('grams');
     const [foods, setFoods] = useState<FoodItem[]>([]);
     const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
+    const [viewedFood, setViewedFood] = useState<FoodItem | null>(null); 
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const fetchData = async (page: number) => {
-        setIsLoading(true);
-
-        const payload = {
-            query: query.trim(),
-            dataType: ['Foundation', 'SR Legacy', 'Branded'],
-            pageSize: 10,
-            pageNumber: page,
-            brandOwner: brandOwner || undefined,
-        };
-
-        const res = await fetch(
-            `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${process.env.NEXT_PUBLIC_FDC_API_KEY}`,
-            {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload),
-            },
-        );
-
-        const data = await res.json();
-        setFoods(data.foods || []);
-        setTotalPages(data.totalPages || 1);
-        setIsLoading(false);
+    const units = [
+        {key: 'grams', label: 'g'},
+        {key: 'ounces', label: 'oz'},
+        {key: 'pounds', label: 'lbs'},
+    ];
+    const conversionRates: {[key: string]: number} = {
+        grams: 1,
+        ounces: 28.3495,
+        pounds: 453.592,
     };
 
-    const handleSearch = () => {
-        setPageNumber(1);
-        fetchData(1);
+    const handleSearch = async () => {
+        try {
+            const res = await fetch(
+                `/api/nutrition/searchFoods?query=${encodeURIComponent(query)}`,
+            );
+            if (!res.ok) {
+                console.error('Error fetching data:', res.statusText);
+                return;
+            }
+            const data = await res.json();
+            setFoods(data);
+        } catch (error) {
+            console.error('Fetch failed:', error);
+        }
+    };
+
+    const handleInfoClick = async (food: FoodItem) => {
+        try {
+            setIsLoading(true);
+            const res = await fetch(
+                `/api/nutrition/getFood?name=${encodeURIComponent(food.name)}`,
+            );
+            if (!res.ok) {
+                console.error('Error fetching food details:', res.statusText);
+                return;
+            }
+            const data = await res.json();
+            setViewedFood({...food, ...data}); 
+            modalDisclosure.onOpen();
+        } catch (error) {
+            console.error('Failed to fetch food details:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleRowClick = (food: FoodItem) => {
         setSelectedFood(food);
-        modalDisclosure.onOpen();
     };
+
+    const resetDrawer = () => {
+        setSelectedFood(null);
+        setQuery('');
+        setFoods([]);
+    };
+
+    const handleUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setUnit(e.target.value);
+        const amountInGrams = amount * conversionRates[prevUnit];
+        const newAmount = amountInGrams / conversionRates[e.target.value];
+        const roundedAmount = Math.round(newAmount * 100) / 100;
+        setAmount(roundedAmount);
+        setPrevUnit(e.target.value);
+    };
+
 
     return (
         <div className="p-8">
@@ -102,7 +121,6 @@ const SearchPage: React.FC = () => {
                 Open Food Search
             </Button>
 
-            {/* Food Search Drawer */}
             <Drawer isOpen={isOpen} onOpenChange={onOpenChange} size="md">
                 <DrawerContent>
                     {onClose => (
@@ -111,19 +129,10 @@ const SearchPage: React.FC = () => {
                                 <p className="text-lg font-bold">Food Search</p>
                             </DrawerHeader>
                             <DrawerBody>
-                                {/* Search Inputs */}
                                 <Input
                                     placeholder="Food Name"
                                     value={query}
                                     onChange={e => setQuery(e.target.value)}
-                                    className="w-full mb-4"
-                                />
-                                <Input
-                                    placeholder="Brand Owner"
-                                    value={brandOwner}
-                                    onChange={e =>
-                                        setBrandOwner(e.target.value)
-                                    }
                                     className="w-full mb-4"
                                 />
                                 <Button
@@ -133,17 +142,17 @@ const SearchPage: React.FC = () => {
                                     Search
                                 </Button>
 
-                                {/* Table with Fixed Height */}
                                 <div className="h-[500px] overflow-y-auto border rounded-md">
                                     <Table
                                         aria-label="Food Search Results"
                                         isHeaderSticky
+                                        selectionBehavior="replace"
+                                        color="primary"
+                                        selectionMode="single"
                                     >
                                         <TableHeader>
                                             <TableColumn>Name</TableColumn>
-                                            <TableColumn>
-                                                Brand Owner
-                                            </TableColumn>
+                                            <TableColumn>Info</TableColumn>
                                         </TableHeader>
                                         <TableBody
                                             isLoading={isLoading}
@@ -151,45 +160,80 @@ const SearchPage: React.FC = () => {
                                             loadingContent="Loading..."
                                         >
                                             {(item: FoodItem) => (
-                                                <TableRow
-                                                    key={item.fdcId}
-                                                    onClick={() =>
-                                                        handleRowClick(item)
-                                                    }
-                                                    className="cursor-pointer hover:bg-gray-100 transition"
-                                                >
-                                                    <TableCell>
-                                                        {item.description}
+                                                <TableRow key={item.name}>
+                                                    <TableCell
+                                                        onClick={() =>
+                                                            handleRowClick(item)
+                                                        }
+                                                        className="cursor-pointer hover:bg-gray-100 transition"
+                                                    >
+                                                        {item.name}
                                                     </TableCell>
                                                     <TableCell>
-                                                        {item.brandOwner ||
-                                                            'N/A'}
+                                                        <Button
+                                                            onPress={() =>
+                                                                handleInfoClick(item)
+                                                            }
+                                                            className="bg-transparent text-white hover:text-blue-600"
+                                                            isIconOnly
+                                                        >
+                                                            <FaInfo />
+                                                        </Button>
                                                     </TableCell>
                                                 </TableRow>
                                             )}
                                         </TableBody>
                                     </Table>
                                 </div>
-
-                                {/* Pagination */}
-                                <div className="flex justify-center mt-4">
-                                    <Pagination
-                                        total={totalPages}
-                                        page={pageNumber}
-                                        onChange={page => {
-                                            setPageNumber(page);
-                                            fetchData(page);
-                                        }}
-                                        color="primary"
-                                    />
-                                </div>
                             </DrawerBody>
+                            {selectedFood && (
+                                <div className="flex items-center space-x-4 p-4">
+                                    <Input
+                                        type="number"
+                                        label="Amount"
+                                        value={amount.toString()}
+                                        onChange={e =>
+                                            setAmount(Number(e.target.value))
+                                        }
+                                        className="w-1/4 mb-4"
+                                    />
+                                    <Select
+                                        label="Unit"
+                                        placeholder="Select a unit"
+                                        selectedKeys={new Set([unit])}
+                                        onSelectionChange={(keys) => {
+                                            const selectedUnit = Array.from(keys)[0] as string;
+                                            handleUnitChange({ target: { value: selectedUnit } } as React.ChangeEvent<HTMLSelectElement>);
+                                        }}
+                                        className="w-1/4 mb-4"
+                                    >
+                                        {units.map(u => (
+                                            <SelectItem key={u.key} value={u.key}>
+                                                {u.label}
+                                            </SelectItem>
+                                        ))}
+                                    </Select>
+                                    <Button
+                                        color="primary"
+                                        onPress={() => {
+                                            if (selectedFood) {
+                                                onSelectFood(selectedFood);
+                                            }
+                                            resetDrawer();
+                                            onClose();
+                                        }}
+                                        className="bg-blue-500 text-white hover:bg-blue-600"
+                                    >
+                                        Add Selected Food
+                                    </Button>
+                                </div>
+                            )}
                             <DrawerFooter>
                                 <Button
                                     color="danger"
                                     variant="light"
                                     onPress={onClose}
-                                    className="hover:bg-red-100"
+                                    className="hover:bg-red-100 mr-2"
                                 >
                                     Close
                                 </Button>
@@ -199,52 +243,64 @@ const SearchPage: React.FC = () => {
                 </DrawerContent>
             </Drawer>
 
-            {/* Modal for Nutrition Information */}
             <Modal
                 isOpen={modalDisclosure.isOpen}
                 onOpenChange={modalDisclosure.onOpenChange}
                 className="h-[500px] overflow-y-auto"
             >
                 <ModalContent>
-                    <ModalHeader>{selectedFood?.description}</ModalHeader>
+                    <ModalHeader>
+                        {viewedFood?.name || 'Food Details'}
+                    </ModalHeader>
                     <ModalBody>
-                        <p>
-                            <strong>Brand Owner:</strong>{' '}
-                            {selectedFood?.brandOwner || 'N/A'}
-                        </p>
-                        <p>
-                            <strong>Brand Name:</strong>{' '}
-                            {selectedFood?.brandName || 'N/A'}
-                        </p>
-                        <p>
-                            <strong>Description:</strong>{' '}
-                            {selectedFood?.description || 'N/A'}
-                        </p>
-                        <p>
-                            <strong>GTIN/UPC:</strong>{' '}
-                            {selectedFood?.gtinUpc || 'N/A'}
-                        </p>
-                        <p>
-                            <strong>Serving Size:</strong>{' '}
-                            {selectedFood?.servingSize}{' '}
-                            {selectedFood?.servingSizeUnit}
-                        </p>
-
-                        <Spacer y={1} />
-                        <strong>Nutrients:</strong>
-                        {selectedFood?.foodNutrients?.length ? (
-                            <ul className="h-[300px] overflow-y-auto border rounded-md p-4">
-                                {selectedFood.foodNutrients.map(
-                                    (nutrient, index) => (
-                                        <li key={index}>
-                                            {nutrient.nutrientName}:{' '}
-                                            {nutrient.value} {nutrient.unitName}
-                                        </li>
-                                    ),
+                        {viewedFood ? (
+                            <div>
+                                <p>
+                                    <strong>Calories:</strong>{' '}
+                                    {viewedFood.calories || 'N/A'}
+                                </p>
+                                <p>
+                                    <strong>Total Fat:</strong>{' '}
+                                    {viewedFood.total_fat || 'N/A'}
+                                </p>
+                                <p>
+                                    <strong>Carbohydrate:</strong>{' '}
+                                    {viewedFood.carbohydrate || 'N/A'}
+                                </p>
+                                <p>
+                                    <strong>Protein:</strong>{' '}
+                                    {viewedFood.protein || 'N/A'}
+                                </p>
+                                <p>
+                                    <strong>Fiber</strong>{' '}
+                                    {viewedFood.fiber || 'N/A'}
+                                </p>
+                                {Object.entries(viewedFood).map(
+                                    ([key, value]) => {
+                                        if (
+                                            [
+                                                'name',
+                                                'calories',
+                                                'total_fat',
+                                                'carbohydrate',
+                                                'protein',
+                                                'serving size',
+                                                'fiber',
+                                            ].includes(key)
+                                        ) return null;
+                                        return (
+                                            <p key={key}>
+                                                <strong>
+                                                    {key.replace(/_/g, ' ')}:
+                                                </strong>{' '}
+                                                {value || 'N/A'}
+                                            </p>
+                                        );
+                                    },
                                 )}
-                            </ul>
+                            </div>
                         ) : (
-                            <p>No nutrients available</p>
+                            <p>No nutrition data available</p>
                         )}
                     </ModalBody>
 
