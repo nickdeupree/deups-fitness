@@ -41,7 +41,7 @@ function Navigation() {
         </Link>
       </NavbarBrand>
       {isMobile ? (
-        <>
+        <div>
           <NavbarMenuToggle aria-label="Toggle navigation menu" />
           <NavbarMenu>
             <NavbarItem>
@@ -63,7 +63,7 @@ function Navigation() {
               Profile
             </Link>
           </NavbarMenu>
-        </>
+        </div>
       ) : (
         <NavbarContent>
           <NavbarItem>

@@ -124,7 +124,7 @@ const SearchPage: React.FC<SearchPageProps> = ({ onSelectFood }) => {
             <Drawer isOpen={isOpen} onOpenChange={onOpenChange} size="md">
                 <DrawerContent>
                     {onClose => (
-                        <>
+                        <div>
                             <DrawerHeader>
                                 <p className="text-lg font-bold">Food Search</p>
                             </DrawerHeader>
@@ -238,7 +238,7 @@ const SearchPage: React.FC<SearchPageProps> = ({ onSelectFood }) => {
                                     Close
                                 </Button>
                             </DrawerFooter>
-                        </>
+                        </div>
                     )}
                 </DrawerContent>
             </Drawer>
